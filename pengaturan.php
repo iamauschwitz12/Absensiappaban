@@ -263,6 +263,18 @@ include 'header.php';
         <div class="col-lg-7">
             <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                <!-- Hidden inputs untuk field yang tidak tampil di form (agar nilai lama tetap tersimpan) -->
+                <input type="hidden" name="mode_absen_pulang" value="<?= (int)$data['mode_absen_pulang'] ?>">
+                <input type="hidden" name="wa_mode" value="<?= (int)$data['wa_mode'] ?>">
+                <input type="hidden" name="wa_token" value="<?= xss($data['wa_token']) ?>">
+                <input type="hidden" name="wa_api_url" value="<?= xss($data['wa_api_url']) ?>">
+                <input type="hidden" name="tg_bot_token" value="<?= xss($data['tg_bot_token']) ?>">
+                <input type="hidden" name="smtp_host" value="<?= xss($data['smtp_host']) ?>">
+                <input type="hidden" name="smtp_port" value="<?= (int)$data['smtp_port'] ?>">
+                <input type="hidden" name="smtp_user" value="<?= xss($data['smtp_user']) ?>">
+                <input type="hidden" name="smtp_pass" value="<?= xss($data['smtp_pass']) ?>">
+                <input type="hidden" name="pesan_masuk" value="<?= xss($data['pesan_masuk']) ?>">
+                <input type="hidden" name="pesan_pulang" value="<?= xss($data['pesan_pulang']) ?>">
                 <div class="card p-4 mb-4">
                     <span class="section-title"><i class="bi bi-building"></i> Identitas & Konfigurasi Umum</span>
                     <div class="row align-items-center mb-4">
@@ -338,8 +350,8 @@ include 'header.php';
                     </div> -->
                 </div>
 
-                <!-- <div class="card p-4 mb-4">
-                    <span class="section-title text-success"><i class="bi bi-whatsapp"></i> Konfigurasi WhatsApp API</span>
+                <div class="card p-4 mb-4">
+                    <!-- <span class="section-title text-success"><i class="bi bi-whatsapp"></i> Konfigurasi WhatsApp API</span>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Mode Pengiriman</label>
@@ -394,12 +406,12 @@ include 'header.php';
                     <div class="mb-3">
                         <label class="form-label text-primary">Template Pesan PULANG</label>
                         <textarea name="pesan_pulang" class="form-control" rows="3"><?= xss($data['pesan_pulang']) ?></textarea>
-                    </div>
+                    </div> -->
 
                     <button type="submit" name="simpan_pengaturan" class="btn btn-primary w-100 btn-save mt-3 shadow-sm">
                         SIMPAN SEMUA PERUBAHAN
                     </button>
-                </div> -->
+                </div>
             </form>
         </div>
 
