@@ -46,7 +46,8 @@ if(isset($_POST['login'])){
                 $_SESSION['id'] = $d['id'];
                 $_SESSION['username'] = $d['username'];
                 $_SESSION['role'] = $d['role'];
-                $_SESSION['nama'] = $d['nama_lengkap'] ?? $d['nama'] ?? $d['username']; 
+                $_SESSION['nama'] = $d['nama_lengkap'] ?? $d['nama'] ?? $d['username'];
+                $_SESSION['kelas_diampu'] = $d['kelas_diampu'] ?? '';
                 
                 header("location: dashboard.php");
                 exit;
