@@ -1,0 +1,16 @@
+GUNAKAN PHP Versi 8.2
+
+Username : admin
+Password : admin
+
+Turorial
+https://www.youtube.com/watch?v=HHnNBT1VQHI&list=PLnG_Iv4HIrlXt1LFKeSxKhdnggTR6OWd0
+
+Group Telegram
+https://t.me/+aF9iL-JW4YU2MjQ1
+
+Download Aplikasi Lainnya
+https://lynk.id/sq-frh
+
+link download XAMPP 8.2
+https://sourceforge.net/projects/xampp/files/XAMPP%20Windows/8.2.12/xampp-windows-x64-8.2.12-0-VS16-installer.exe/download

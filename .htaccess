@@ -1,0 +1,60 @@
+# ==============================================================================
+# KEAMANAN 
+# ==============================================================================
+
+# 1. MATIKAN DIRECTORY LISTING
+# Jika index.php tidak ada, orang tidak bisa melihat isi daftar file di folder
+Options -Indexes
+
+# 2. SEMBUNYIKAN IDENTITAS SERVER
+# Jangan biarkan hacker tahu versi Apache/OS yang digunakan
+ServerSignature Off
+
+# 3. BLOKIR AKSES KE FILE SENSITIF & TERSEMBUNYI
+# Melindungi file .env, .sql, .log, .bak, dan konfigurasi lainnya
+<FilesMatch "^\.|\.(bak|config|sql|ini|log|sh|inc|env|md)$">
+    Require all denied
+</FilesMatch>
+
+# Aturan MIME dari script asli
+<IfModule mod_mime.c>
+    AddType application/octet-stream .
+    AddType application/json .json
+</IfModule>
+
+<IfModule mod_headers.c>
+    # 4. FIX CORS (TUTUP CELAH AKSES TERBUKA)
+    # GANTI TANDA * DENGAN DOMAIN RESMI ABANG!
+    Header set Access-Control-Allow-Origin "https://asofa.my.id"
+    
+    # 5. SECURITY HEADERS (BENTENG PERTAHANAN BROWSER)
+    
+    # Mencegah Web Abang dibingkai (iframe) oleh web penipu (Clickjacking)
+    Header always set X-Frame-Options "SAMEORIGIN"
+    
+    # Menghentikan eksekusi script jahat (XSS) yang disusupkan lewat URL
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Mencegah hacker mengubah file gambar/txt menjadi file eksekusi PHP (MIME Sniffing)
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # Paksa penggunaan HTTPS (HSTS) - Sangat Krusial untuk Cloudflare Tunnel
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    
+    # Menjaga privasi asal traffic saat klik link keluar
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Permissions Policy: Mengunci izin kamera HANYA untuk web Abang 
+    # (Sangat penting agar API Scanner Wajah tidak disalahgunakan web lain)
+    Header always set Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+</IfModule>
+
+# 6. FIREWALL DASAR (MENCEGAH INJEKSI SQL & SCRIPT)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Blokir URL yang mengandung script jahat 
+    RewriteCond %{QUERY_STRING} (<|%3C).*script.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2})
+    RewriteRule ^(.*)$ - [F,L]
+</IfModule>
