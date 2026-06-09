@@ -3,23 +3,29 @@ session_start();
 include 'koneksi.php';
 
 // --- SECURITY: INISIALISASI CSRF TOKEN ---
+// CSRF token dibuat/diinisialisasi untuk mencegah request sensitif (mis. hapus data)
+// dilakukan oleh pihak yang tidak berwenang.
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 // Fungsi Keamanan XSS
+// Digunakan untuk meng-escape output sebelum ditampilkan ke HTML.
 function xss($data) {
     return htmlspecialchars($data ?? '', ENT_QUOTES, 'UTF-8');
 }
 
 // 1. Cek Login
+// Pastikan hanya user yang sudah login dapat mengakses halaman manajemen siswa.
 if(!isset($_SESSION['login'])){ 
     header("location: login.php"); 
     exit; 
 }
 
+// role dan kelas_diampu dipakai untuk filter data (mis. wali kelas hanya melihat kelasnya).
 $role = $_SESSION['role'];
 $kelas_diampu = $_SESSION['kelas_diampu'] ?? '';
+
 
 // --- SECURITY: LOGIKA HAPUS DATA ---
 if(isset($_GET['hapus_id']) && isset($_GET['token'])){

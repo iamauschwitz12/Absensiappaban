@@ -3,51 +3,66 @@ session_start();
 include 'koneksi.php';
 
 // --- SECURITY: INISIALISASI CSRF TOKEN ---
+// CSRF token digunakan untuk mencegah request hapus/aksi sensitif yang dibuat oleh pihak lain.
+// Token disimpan pada session, lalu diverifikasi ketika halaman menerima parameter aksi tertentu.
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 // Fungsi Keamanan XSS
+// Dipakai untuk meng-escape data dari database sebelum dirender ke HTML.
 function xss($data) {
     return htmlspecialchars($data ?? '', ENT_QUOTES, 'UTF-8');
 }
 
 // 1. Cek Login
+// Jika user belum login, redirect ke halaman login.
 if(!isset($_SESSION['login'])){ 
     header("location: login.php"); 
     exit; 
 }
 
+// role disiapkan untuk kebutuhan otorisasi fitur (meski pada file ini tidak selalu digunakan).
 $role = $_SESSION['role'];
 
 // --- SECURITY: LOGIKA HAPUS DATA ---
+// Hapus data guru dilakukan melalui parameter GET (hapus_id) dan validasi CSRF token.
+// Jika token tidak valid, proses dihentikan untuk mencegah CSRF.
 if(isset($_GET['hapus_id']) && isset($_GET['token'])){
     if($_GET['token'] !== $_SESSION['csrf_token']){
-        die("Terdeteksi upaya ilegal (CSRF)!");
+        die("Terdeteksi upaya ilegal (CSRF)!" );
     }
 
+    // Pastikan id yang diterima adalah integer.
     $id_hapus = (int)$_GET['hapus_id'];
     
+    // Ambil nama file foto guru sebelum dihapus (untuk membersihkan file fisik di server).
     $stmt_foto = $conn->prepare("SELECT foto FROM guru WHERE id = ?");
     $stmt_foto->bind_param("i", $id_hapus);
     $stmt_foto->execute();
     $data_lama = $stmt_foto->get_result()->fetch_assoc();
 
+    // Jika file foto ada dan nilainya tidak kosong, hapus file dari folder img/guru/.
     if($data_lama && !empty($data_lama['foto'])){
         $path_foto = "img/guru/" . $data_lama['foto'];
         if(file_exists($path_foto)) unlink($path_foto);
     }
 
+    // Hapus record guru dari database.
     $stmt_del = $conn->prepare("DELETE FROM guru WHERE id = ?");
     $stmt_del->bind_param("i", $id_hapus);
     
+    // Jika sukses, tampilkan alert dan kembali ke halaman ini.
     if($stmt_del->execute()){
         echo "<script>alert('Data guru berhasil dihapus!'); window.location='data_guru.php';</script>";
     }
+
+    // Hentikan eksekusi karena aksi hapus sudah ditangani.
     exit;
 }
 
 // Ambil Nama Sekolah & Timezone
+// Informasi konfigurasi aplikasi diambil dari tabel `pengaturan`.
 $query_set = mysqli_query($conn, "SELECT nama_sekolah FROM pengaturan WHERE id=1");
 $set_sch = mysqli_fetch_assoc($query_set);
 $nama_sekolah = $set_sch['nama_sekolah'] ?? 'Sistem Absensi';
@@ -57,16 +72,20 @@ $sett = mysqli_fetch_assoc($querySetting);
 $timezone_aktif = $sett['timezone'] ?? 'Asia/Jakarta';
 
 // --- LOGIKA TANGGAL INDONESIA ---
+// Membuat format tanggal berbahasa Indonesia untuk ditampilkan di header.
 $daftar_hari = array('Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu');
 $daftar_bulan = array('January' => 'Januari', 'February' => 'Februari', 'March' => 'Maret', 'April' => 'April', 'May' => 'Mei', 'June' => 'Juni', 'July' => 'Juli', 'August' => 'Agustus', 'September' => 'September', 'October' => 'Oktober', 'November' => 'November', 'December' => 'Desember');
 $tgl_indo = $daftar_hari[date('l')] . ', ' . date('d ') . $daftar_bulan[date('F')] . date(' Y');
 
 // --- LOGIKA PAGINATION ---
+// Membagi data menjadi beberapa halaman untuk performa dan kenyamanan tampilan.
 $limit = 40; 
 $halaman = isset($_GET['p']) ? (int)$_GET['p'] : 1;
 $offset = ($halaman - 1) * $limit;
 
 // --- PENCARIAN & FILTER ---
+// keyword (q) dipakai untuk pencarian berdasarkan nama/nip/jabatan.
+// mapel_filter (mapel) dipakai untuk memfilter mata pelajaran.
 $keyword = $_GET['q'] ?? '';
 $mapel_filter = $_GET['mapel'] ?? '';
 $where = "WHERE 1=1";
@@ -75,25 +94,39 @@ $types = "";
 
 if(!empty($keyword)) {
     $where .= " AND (nama LIKE ? OR nip LIKE ? OR jabatan LIKE ?)";
-    $search_key = "%$keyword%"; $params[] = $search_key; $params[] = $search_key; $params[] = $search_key; $types .= "sss";
+    // search_key dipakai bersama untuk tiga kolom sekaligus (nama/nip/jabatan).
+    $search_key = "%$keyword%"; 
+    $params[] = $search_key; 
+    $params[] = $search_key; 
+    $params[] = $search_key; 
+    $types .= "sss";
 }
-if(!empty($mapel_filter)) { $where .= " AND mata_pelajaran = ?"; $params[] = $mapel_filter; $types .= "s"; }
+if(!empty($mapel_filter)) { 
+    $where .= " AND mata_pelajaran = ?"; 
+    $params[] = $mapel_filter; 
+    $types .= "s"; 
+}
 
+// Hitung total data untuk menentukan jumlah halaman.
 $stmt_count = $conn->prepare("SELECT COUNT(*) as total FROM guru $where");
 if($types) $stmt_count->bind_param($types, ...$params);
 $stmt_count->execute();
 $total_data = $stmt_count->get_result()->fetch_assoc()['total'];
 $total_halaman = ceil($total_data / $limit);
 
+// Query utama mengambil data sesuai filter + pagination.
 $final_query = "SELECT * FROM guru $where ORDER BY nama ASC LIMIT ?, ?";
-$params[] = $offset; $params[] = $limit; $types .= "ii";
+$params[] = $offset; 
+$params[] = $limit; 
+$types .= "ii";
 $stmt_main = $conn->prepare($final_query);
 $stmt_main->bind_param($types, ...$params);
 $stmt_main->execute();
 $data_guru = $stmt_main->get_result();
 
-// Ambil daftar mata pelajaran unik untuk filter dropdown
+// Ambil daftar mata pelajaran unik untuk filter dropdown pada bagian pencarian.
 $q_mapel_list = mysqli_query($conn, "SELECT DISTINCT mata_pelajaran FROM guru WHERE mata_pelajaran IS NOT NULL AND mata_pelajaran != '' ORDER BY mata_pelajaran ASC");
+
 
 include 'header.php'; 
 ?>
